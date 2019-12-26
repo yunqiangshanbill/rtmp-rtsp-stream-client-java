@@ -80,7 +80,11 @@ public class VideoDecoder {
     thread = new Thread(new Runnable() {
       @Override
       public void run() {
-        decodeVideo();
+        try {
+          decodeVideo();
+        } catch (IllegalStateException e) {
+          Log.i(TAG, "Decoding error", e);
+        }
       }
     });
     thread.start();
@@ -98,9 +102,11 @@ public class VideoDecoder {
       }
       thread = null;
     }
-    if (videoDecoder != null) {
+    try {
       videoDecoder.stop();
       videoDecoder.release();
+      videoDecoder = null;
+    } catch (IllegalStateException | NullPointerException e) {
       videoDecoder = null;
     }
     if (videoExtractor != null) {
@@ -109,7 +115,7 @@ public class VideoDecoder {
     }
   }
 
-  private void decodeVideo() {
+  private void decodeVideo() throws IllegalStateException {
     ByteBuffer[] inputBuffers = videoDecoder.getInputBuffers();
     startMs = System.currentTimeMillis();
     while (decoding) {
@@ -131,7 +137,7 @@ public class VideoDecoder {
           try {
             Thread.sleep(10);
           } catch (InterruptedException e) {
-            thread.interrupt();
+            if (thread != null) thread.interrupt();
             return;
           }
         }
